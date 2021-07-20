@@ -1,0 +1,95 @@
+---
+
+# Author : DOT_STI_Supervision / Patrick Yang
+# Purpose : Play to deactivate OneAgent (need to do it from API call)
+# Target : Any host monitored on a Dynatrace tenant
+# Input variable is the 'fqdn' of the server
+
+# TODO: do it one from a host that has access to the DT API
+# TODO: separate in tasks/<task>.yml once validated
+- hosts: localhost
+  vars:
+  tasks:
+    - name: choose dynatrace tenant
+      set_fact:
+        dynatrace_environment_url: 'hostname.client.com/e/42b3e8e4-5071-4b16-9478-0023fdb16435'
+        dynatrace_monitored_entity_endpoint: "/api/v2/entities"
+        dynatrace_api_token: 'token'
+      when: "{{ fqdn[4] == 'p' }}"
+      tags: 
+        - deactivate
+        - activate
+    
+    - name: choose dynatrace tenant
+      set_fact:
+        dynatrace_environment_url: 'hostname.client.com/e/b1da47f6-efea-4171-b9c8-f3619c73a447'
+        dynatrace_monitored_entity_endpoint: "/api/v2/entities"
+        dynatrace_api_token: 'token'
+      when: "{{ fqdn[4] != 'p' }}"
+      tags: 
+        - deactivate
+        - activate
+
+    - name: get host entity id
+      uri:
+        url: 'https://{{ dynatrace_environment_url }}{{dynatrace_monitored_entity_endpoint}}?entitySelector=type("HOST"),entityName("{{ fqdn }}")'
+        method: "GET"
+        headers:
+          Authorization: "Api-Token {{ dynatrace_api_token }}"
+        status_code: 200
+      register: get_host_result
+      tags:
+        - deactivate
+        - activate
+
+    - name: debug
+      debug:
+        msg: "{{ get_host_result }}"
+      tags:
+        - deactivate
+        - activate
+
+    - name: deactivate monitoring
+      uri:
+        url: 'https://{{ dynatrace_environment_url }}/api/config/v1/hosts/{{ get_host_result["json"]["entities"][0]["entityId"] }}/monitoring'
+        method: 'PUT'
+        headers:
+          Authorization: "Api-Token {{ dynatrace_api_token }}"
+        body:
+          {
+            "monitoringEnabled": false,
+            "monitoringMode": "CLOUD_INFRASTRUCTURE"
+          }
+        status_code: 204
+        body_format: json
+      register: deactivation_result
+      tags: deactivate
+      when: get_host_result["json"]["entities"]|length>0
+
+    - name: debug
+      debug:
+        msg: "{{ deactivation_result }}"
+      tags: deactivate
+
+    - name: activate monitoring
+      uri:
+        url: 'https://{{ dynatrace_environment_url }}/api/config/v1/hosts/{{ get_host_result["json"]["entities"][0]["entityId"] }}/monitoring'
+        method: 'PUT'
+        headers:
+          Authorization: "Api-Token {{ dynatrace_api_token }}"
+        body:
+          {
+            "monitoringEnabled": true,
+            "monitoringMode": "CLOUD_INFRASTRUCTURE"
+          }
+        status_code: 204
+        body_format: json
+      register: activation_result
+      tags: activate
+      when: get_host_result["json"]["entities"]|length>0
+    
+    - name: debug
+      debug:
+        msg: "{{ activation_result }}"
+      tags: activate
+    

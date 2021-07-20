@@ -1,0 +1,12 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to install a Dynatrace Active Gate on a given host
+# Target : Linux / Windows / AIX
+
+- hosts: all
+  vars:
+  become_user: root
+  tasks:
+  - name: main
+    include_tasks: "tasks/activegate_install.yml"

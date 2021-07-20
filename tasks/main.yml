@@ -1,0 +1,44 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to deploy a Dynatrace oneagent on a given host (download/install/configure)
+# Target : Linux / AIX / Windows
+
+- name: Check required variables
+  fail:
+    msg: "One or more required variables are not defined. Please see documentation for further information."
+  when: not dynatrace_environment_url or not dynatrace_paas_token
+
+- name: load default variables based on OS
+  include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+- name: load variables based on OS
+  include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+- name: check prerequisites
+  include_tasks: "tasks/prerequisites.yml"
+
+- name: download dynatrace oneagent
+  include_tasks: "tasks/download.yml"
+
+- name: install dynatrace oneagent
+  include_tasks: "tasks/install.yml"
+
+- name: config dynatrace oneagent
+  include_tasks: "tasks/config.yml"
+
+- name: ensure oneagent has selected state and enabled on boot | linux
+  service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_state }}"
+    enabled: true
+  when: dynatrace_oneagent_package_state != "absent" and ansible_system|lower == "linux"
+  become_user: root
+  become: true
+
+- name: ensure oneagent has selected state and enabled on boot | windows
+  win_service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_state }}"
+    enabled: true
+  when: dynatrace_oneagent_package_state != "absent" and ansible_system|lower == "win32nt"

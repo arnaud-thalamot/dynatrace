@@ -1,0 +1,14 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to migrate a oneagent from a tenant to an other
+# Target : Linux / Windows / AIX
+
+- hosts: all
+  vars:
+  remote_user: dynatrace
+  become_user: root
+  become: true
+  tasks:
+  - name: main
+    include_tasks: "tasks/migrate.yml"

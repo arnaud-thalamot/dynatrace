@@ -1,0 +1,44 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to add a maintenance window for a given host on a Dynatrace Managed Tenant
+# Target : Linux / Windows / AIX
+
+
+- hosts: all
+  vars:
+  tasks:
+  - name: Check required variables
+    fail:
+      msg: "The parameter named 'appli' was not set"
+    when: not appli
+
+  - name: load default variables based on OS
+    include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+  - name: load variables based on OS
+    include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+  - name: build application code
+    set_fact:
+      application_code: "{{ ansible_host[5:7] }}"
+
+  - name: define dynatrace params
+    set_fact:
+      dynatrace_environment_url: 'hostname.client.com/e/42b3e8e4-5071-4b16-9478-0023fdb16435'
+      dynatrace_api_token: 'token'
+    when: "{{ ansible_host[4] == 'p' }}"
+
+  - name: define dynatrace params
+    set_fact:
+      dynatrace_environment_url: 'hostname.client.com/e/b1da47f6-efea-4171-b9c8-f3619c73a447'
+      dynatrace_api_token: 'token'
+    when: "{{ ansible_host[4] != 'p' }}"
+
+  - name: create maintenance windows | linux
+    include_tasks: "tasks/create_maintenance_windows.yml"
+    when: ansible_system|lower == "linux"
+
+  - name: create maintenance windows | windows
+    include_tasks: "tasks/create_maintenance_windows_win.yml"
+    when: ansible_system|lower == "win32nt"

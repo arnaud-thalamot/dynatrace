@@ -1,0 +1,62 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to download the Dynatrace Oneagent on a given host
+# Target : Linux / AIX / Windows
+
+- name: set url for dmz servers
+  set_fact:
+    dynatrace_oneagent_installer_url: http://hostname.client.com/pub/packages/dot-sti-supervision-admin/dynatrace/{{ dynatrace_environment_url.split('/').2 }}/{{ dynatrace_oneagent_install_url_key }}/Dynatrace-OneAgent-Linux-latest.sh
+  when: "ansible_system|lower == 'linux'"
+
+- name: set url for dmz servers
+  set_fact:
+    dynatrace_oneagent_installer_url: http://hostname.client.com/pub/packages/dot-sti-supervision-admin/dynatrace/{{ dynatrace_environment_url.split('/').2 }}/{{ dynatrace_oneagent_install_url_key }}/Dynatrace-OneAgent-Aix-latest.sh
+  when: "ansible_system|lower == 'aix'"
+
+- name: set url for dmz servers
+  set_fact:
+    dynatrace_oneagent_installer_url: http://hostname.client.com/pub/packages/dot-sti-supervision-admin/dynatrace/{{ dynatrace_environment_url.split('/').2 }}/{{ dynatrace_oneagent_install_url_key }}/Dynatrace-OneAgent-Windows-latest.exe
+  when: "ansible_system|lower == 'win32nt'"
+
+- name: check if oneagent is installed | linux
+  stat:
+    path: "sudo {{ dynatrace_oneagent_install_artifact }}"
+  register: dynatrace_oneagent_state_file_linux
+  when: ansible_system|lower == "linux"
+
+- name: check if oneagent is installed | aix
+  stat:
+    path: "{{ dynatrace_oneagent_install_artifact }}"
+  register: dynatrace_oneagent_state_file_aix
+  when: ansible_system|lower == "aix"
+
+- name: check if oneagent is installed | windows
+  win_stat:
+    path: "{{ dynatrace_oneagent_install_artifact }}"
+  register: dynatrace_oneagent_state_file_windows
+  when: ansible_system|lower == "win32nt"
+
+- debug:
+    msg: "url {{ dynatrace_oneagent_installer_url }}"
+
+- name: download dynatrace oneagent | linux
+  get_url:
+    url: "{{ dynatrace_oneagent_installer_url }}"
+    dest: "{{ dynatrace_oneagent_install_script }}"
+    validate_certs: "{{ dynatrace_oneagent_package_download_validate_certs }}"
+  when: ansible_system|lower == "linux" and not dynatrace_oneagent_state_file_linux.stat.exists
+
+- name: download dynatrace oneagent | aix
+  get_url:
+    url: "{{ dynatrace_oneagent_installer_url }}"
+    dest: "{{ dynatrace_oneagent_install_script }}"
+    validate_certs: "{{ dynatrace_oneagent_package_download_validate_certs }}"
+  when: ansible_system|lower == "aix" and not dynatrace_oneagent_state_file_aix.stat.exists
+
+- name: download dynatrace OneAgent | windows
+  win_get_url:
+    url: "{{ dynatrace_oneagent_installer_url }}"
+    dest: "{{ dynatrace_oneagent_install_script }}"
+    force: true
+  when: ansible_system|lower == "win32nt" and not dynatrace_oneagent_state_file_windows.stat.exists

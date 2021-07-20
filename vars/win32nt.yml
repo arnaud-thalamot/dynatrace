@@ -1,0 +1,17 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Variables for Windows Hosts
+# Target : Windows
+
+windows_default_install_dir: "D:\\dynatrace"
+dynatrace_oneagent_install_dir: "{{ dynatrace_oneagent_install_args.INSTALL_PATH | default(windows_default_install_dir) }}"
+dynatrace_oneagent_install_artifact: "{{ dynatrace_oneagent_install_dir }}\\agent\\agent.state"
+dynatrace_oneagent_install_script: "{{ dynatrace_oneagent_download_dir }}Dynatrace-OneAgent-{{ ansible_os_family }}-{{ dynatrace_oneagent_version }}.exe"
+dynatrace_oneagent_install_cmd: "{{ dynatrace_oneagent_install_script }} --quiet"
+dynatrace_oneagent_install_url_key: windows
+dynatrace_oneagent_service_name: Dynatrace OneAgent
+dynatrace_oneagent_hostautotag_config_file: "{{ ansible_env.ProgramData }}\\dynatrace\\oneagent\\agent\\config\\hostautotag.conf"
+dynatrace_oneagent_hostmetadata_config_file: "{{ ansible_env.ProgramData }}\\dynatrace\\oneagent\\agent\\config\\hostcustomproperties.conf"
+dynatrace_oneagent_hostname_config_file: "{{ ansible_env.ProgramData }}\\dynatrace\\oneagent\\agent\\config\\hostname.conf"
+dynatrace_oneagent_ctl_path: "{{ dynatrace_oneagent_install_dir }}\\agent\\tools"

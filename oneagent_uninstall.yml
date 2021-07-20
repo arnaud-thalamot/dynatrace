@@ -1,0 +1,25 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to uninstall a Dynatrace Oneagent on a given host
+# Target : Linux / Windows / AIX
+
+- hosts: all
+  vars:
+  tasks:
+  - name: load default variables based on OS
+    include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+  - name: load variables based on OS
+    include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+  - name: uninstall dynatrace oneAgent | linux
+    command: "sudo {{ dynatrace_oneagent_uninstall_cmd }}"
+    args:
+      removes: "{{ dynatrace_oneagent_install_artifact }}"
+    when: ansible_system|lower == "linux" or ansible_system|lower == "aix"
+    become_user: root
+
+  - name: uninstall dynatrace oneagent | windows
+    win_command: "wmic product where name='Dynatrace OneAgent' call uninstall /nointeractive"
+    when: ansible_system|lower == "win32nt"

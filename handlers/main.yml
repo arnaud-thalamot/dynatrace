@@ -1,0 +1,23 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Handler to restart a Dynatrace Oneagent
+# Target : Linux / AIX / Windows
+
+- name: restart oneagent linux
+  service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_restart_state }}"
+  when: ansible_system|lower == "linux"
+
+- name: restart oneagent aix
+  service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_restart_state }}"
+  when: ansible_system|lower == "aix"
+
+- name: restart oneagent windows
+  win_service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_restart_state }}"
+  when: ansible_system|lower == "win32nt"

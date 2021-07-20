@@ -1,0 +1,11 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to install a Dynatrace oneagent on a given host without creating the metatags for the corresponding host
+# Target : Linux / Windows / AIX
+
+- hosts: all
+  vars:
+  tasks:
+  - name: main
+    include_tasks: "tasks/main_without_metatags.yml"

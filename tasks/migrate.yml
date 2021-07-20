@@ -1,0 +1,63 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to migrate a oneagent from a tenant to an other
+# Target : Linux / AIX / Windows
+
+- name: Check required variables
+  fail:
+    msg: "One or more required variables are not defined. Please see documentation for further information."
+  when: not dynatrace_environment_url or not dynatrace_paas_token
+
+- name: load default variables based on OS
+  include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+- name: load variables based on OS
+  include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+- name: modify dynatrace tenant | linux
+  command: "{{ dynatrace_oneagent_ctl_path }} --set-server={{ dynatrace_environment_url.split('/').0 }} --set-tenant={{ dynatrace_environment_url.split('/').2 }} --set-tenant-token={{ dynatrace_oneagent_tenant_token }} --restart-service"
+  when: ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: create/update hostcustomproperties.conf file | Linux
+  copy:
+    dest: "{{ dynatrace_oneagent_hostmetadata_config_file }}"
+    content: "{{ dynatrace_oneagent_host_metadata }}"
+  when: dynatrace_oneagent_host_metadata and ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: create/update hostcustomproperties.conf file | aix
+  command: "chown dtuser:dtuser {{ dynatrace_oneagent_hostmetadata_config_file }}"
+  when: dynatrace_oneagent_host_metadata and ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: create/update hostcustomproperties.conf file | windows
+  win_copy:
+    dest: "{{ dynatrace_oneagent_hostmetadata_config_file }}"
+    content: "{{ dynatrace_oneagent_host_metadata }}"
+  when: dynatrace_oneagent_host_metadata and ansible_system|lower == "win32nt"
+
+- name: build host group
+  set_fact:
+    dynatrace_hostgroup: "--set-host-group={{ environment_code }}_{{ application_code }}"
+  when: environment_code != "" and application_code != ""
+
+- name: restart oneagent | linux
+  command: "{{ dynatrace_oneagent_ctl_path }} {{dynatrace_hostgroup}} --restart-service"
+  when: ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: restart oneagent | windows
+  command: "{{ dynatrace_oneagent_ctl_path }} {{dynatrace_hostgroup}} --restart-service"
+  when: ansible_system|lower == "windows"
+
+- name: restart oneagent | aix
+  command: "{{ dynatrace_oneagent_ctl_path }} {{dynatrace_hostgroup}} --restart-service"
+  when: ansible_system|lower == "aix"
+  become: true
+  become_user: root

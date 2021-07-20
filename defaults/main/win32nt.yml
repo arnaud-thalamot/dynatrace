@@ -1,0 +1,8 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Default variables for Windows
+# Target : Windows
+
+# set default download dir
+dynatrace_oneagent_download_dir: C:\Windows\Temp\

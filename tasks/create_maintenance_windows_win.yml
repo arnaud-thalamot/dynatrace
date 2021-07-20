@@ -1,0 +1,58 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to create a maintenance window on a given Dynatrace Tenant
+# Target : Windows
+
+- name: build application code
+  set_fact:
+    date_now: "{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
+
+- name: "Create_a_maintenance_window"
+  win_shell: |
+    add-type @"
+    using System.Net;
+    using System.Security.Cryptography.X509Certificates;
+    public class TrustAllCertsPolicy : ICertificatePolicy {
+        public bool CheckValidationResult(
+            ServicePoint srvPoint, X509Certificate certificate,
+            WebRequest request, int certificateProblem) {
+            return true;
+        }
+    }
+    "@
+    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+
+    $props = @{
+      Uri = "{{ dynatrace_environment_uri_maintenance_windows }}"
+      Method = 'POST'
+      ContentType = 'application/json'
+      Body = '{
+           "name": "##_MEP_{{ inventory_hostname }}",
+           "description": "Maintenance {{ inventory_hostname }} => alerts for Oasis disabled",
+           "type": "PLANNED",
+           "suppression": "DETECT_PROBLEMS_DONT_ALERT",
+           "scope": {
+             "entities": [],
+             "matches": [
+               {
+                 "tags": [
+                   {
+                     "context": "CONTEXTLESS",
+                     "key": "inventoryname={{ inventory_hostname }}"
+                   }
+                 ]
+               }
+             ]
+           },
+           "schedule": {
+             "recurrenceType": "ONCE",
+             "start": "{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}",
+             "end": "{{ date_end }}",
+             "zoneId": "Europe/Vienna"
+           }
+         }'
+      Headers = @{Authorization= "Api-Token {{ dynatrace_api_token }}"}
+      }
+      Invoke-RestMethod @props
+  when: "(((date_end | to_datetime('%Y-%m-%d %H:%M')) - (date_now | to_datetime('%Y-%m-%d %H:%M'))).total_seconds()) > 0"

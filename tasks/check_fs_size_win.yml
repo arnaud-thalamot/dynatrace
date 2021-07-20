@@ -1,0 +1,27 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to check if the prerequisites for the target file system for the oneagent installation are present
+# Target : Windows
+
+- name: get disk usage datadir
+  win_shell: Get-PsDrive 'D' | ConvertTo-Json
+  register: datadir
+  ignore_errors: True
+
+- name: test existence datadir
+  fail: msg="Disque {{ data_dir }} non present"
+  when: datadir.stdout == ""
+
+
+- name: extract free space datadir
+  set_fact:
+    free_data_dir_json: "{{ datadir.stdout|from_json}}"
+
+- name: convert datadir Mg
+  set_fact:
+    freeMg_datadir: "{{ (free_data_dir_json.Free|int / 1048576)|round|int }}"
+
+- name: test freespace datadir
+  fail: msg="Espace Disque {{ data_dir }} , free space= {{ freeMg_datadir }}Mg"
+  when: (freeMg_datadir|int < 10000)

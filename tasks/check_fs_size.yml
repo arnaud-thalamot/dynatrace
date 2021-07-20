@@ -1,0 +1,71 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to check if the prerequisites for the target file system for the oneagent installation are present
+# Target : Linux / AIX
+
+- name: Check /softwares/dynatrace exists
+  stat:
+    path: "/softwares/dynatrace"
+  register: file_details
+
+- fail:
+    msg: "The path /softwares/dynatrace does not exists"
+  when: not file_details.stat.exists
+
+- name: Check /softwares/dynatrace rights
+  file:
+    path: "/softwares/dynatrace"
+    mode: '0775'
+  become: yes
+  become_user: root
+  when: ansible_system|lower == "linux"
+
+- name: chmod on /softwares/dynatrace
+  command: "sudo chmod 775 /softwares/dynatrace"
+  when: ansible_system|lower == "aix"
+
+- name: "check mount point /softwares/dynatrace | linux"
+  command: mountpoint /softwares/dynatrace
+  register: mount_stat
+  failed_when: False
+  changed_when: False
+  when: ansible_system|lower == "linux"
+
+- name: "Test /softwares/dynatrace filesystem exists | linux "
+  fail:
+    msg: "/softwares/dynatrace is not a mountpoint"
+  when: ansible_system|lower == "linux" and mount_stat.stdout == "/softwares/dynatrace is not a mountpoint"
+
+- name: "check mount point /softwares/dynatrace | aix"
+  shell: df | grep /softwares/dynatrace
+  register: mount_stat
+  failed_when: False
+  changed_when: False
+  when: ansible_system|lower == "aix"
+
+- name: "Test /softwares/dynatrace filesystem exists | aix"
+  fail:
+    msg: "/softwares/dynatrace is not a mountpoint"
+  when: ansible_system|lower == "aix" and mount_stat.stdout == ""
+
+- name: 'Ensure that free space on /softwares/dynatrace is greater than 10Go'
+  assert:
+    that: item.size_available > 9000000000
+    msg: 'Disk space insufficient on /softwares/dynatrace (10Go)'
+  when: ansible_mounts is defined and item.mount == '/softwares/dynatrace'
+  with_items: "{{ ansible_mounts }}"
+
+- name: 'Ensure that free space on /var is grater than 99%'
+  assert:
+    that: item.size_available > item.size_total|float * 0.01
+    msg: 'disk space has reached 99% threshold'
+  when: ansible_mounts is defined and item.mount == '/var'
+  with_items: "{{ ansible_mounts }}"
+
+- name: 'Ensure that free space on /home is grater than 99%'
+  assert:
+    that: item.size_available > item.size_total|float * 0.01
+    msg: 'disk space has reached 99% threshold'
+  when: ansible_mounts is defined and item.mount == '/home'
+  with_items: "{{ ansible_mounts }}"

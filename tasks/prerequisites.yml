@@ -1,0 +1,16 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to test that all prerequisites are present to install a Dynatrace Oneagent
+# Target : Linux / AIX / Windows
+
+- name: check file system space left
+  include_tasks: "tasks/check_fs_size.yml"
+  when: ansible_system|lower == "linux" or ansible_system|lower == "aix"
+
+- name: Check that Redhat Satellite returns a status 200
+  uri:
+    url: "http://l203ps1010.mousquetaires.com/pub/packages/dot-sti-supervision-admin/dynatrace"
+    return_content: yes
+    timeout: 2
+  when: ansible_system|lower == "linux" or ansible_system|lower == "aix"

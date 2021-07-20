@@ -1,0 +1,42 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to update the metatags for a given host
+# Target : Linux / AIX / Windows
+
+- name: load default variables based on OS
+  include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+- name: load variables based on OS
+  include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+- name: create/update hostcustomproperties.conf file | Linux
+  copy:
+    dest: "{{ dynatrace_oneagent_hostmetadata_config_file }}"
+    content: "{{ dynatrace_oneagent_host_metadata }}"
+  when: ansible_system|lower == "linux" and dynatrace_oneagent_host_metadata
+  become: true
+  become_user: root
+
+- name: modify dynatrace tenant | linux
+  command: "{{ dynatrace_oneagent_ctl_path }} --restart-service"
+  when: ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- debug:
+    msg: "metadata {{ dynatrace_oneagent_host_metadata }}"
+
+- name: create metadata | aix
+  command: "sudo echo {{ dynatrace_oneagent_host_metadata }} > {{ dynatrace_oneagent_hostmetadata_config_file }}"
+  when: ansible_system|lower == "aix" and dynatrace_oneagent_host_metadata
+
+- name: modify dynatrace tenant | aix
+  command: "sudo {{ dynatrace_oneagent_ctl_path }} --restart-service"
+  when: ansible_system|lower == "aix"
+
+- name: create/update hostcustomproperties.conf file | windows
+  win_copy:
+    dest: "{{ dynatrace_oneagent_hostmetadata_config_file }}"
+    content: "{{ dynatrace_oneagent_host_metadata }}"
+  when: dynatrace_oneagent_host_metadata and ansible_system|lower == "win32nt"

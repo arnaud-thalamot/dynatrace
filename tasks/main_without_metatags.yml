@@ -1,0 +1,76 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to install a Dynatrace Oneagent without creating metatags
+# Target : Linux / AIX / Windows
+
+- name: Check required appli name
+  fail:
+    msg: "The date for the maintenance window was not set for a host in production environment"
+  when: "{{ not date_end and ansible_host[4] != 'p' }}"
+
+- name: Check required variables
+  fail:
+    msg: "The parameter named 'appli' was not set"
+  when: not appli
+
+- name: load default variables based on OS
+  include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+- name: load variables based on OS
+  include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+- name: build application code
+  set_fact:
+    application_code: "{{ ansible_host[5:7] }}"
+
+- name: define dynatrace params
+  set_fact:
+    dynatrace_environment_url: 'dynatrace.mousquetaires.com/e/idtenant'
+    dynatrace_environment_uri_maintenance_windows: 'https://dynatrace.mousquetaires.com/e/4idtenant/api/config/v1/maintenanceWindows'
+    dynatrace_api_token: 'token'
+  when: "{{ ansible_host[4] == 'p' }}"
+
+- name: define dynatrace params
+  set_fact:
+    dynatrace_environment_url: 'dynatrace.mousquetaires.com/e/idtenant'
+    dynatrace_environment_uri_maintenance_windows: 'https://dynatrace.mousquetaires.com/e/idtenant/api/config/v1/maintenanceWindows'
+    dynatrace_api_token: 'token'
+  when: "{{ ansible_host[4] != 'p' }}"
+
+- name: define dynatrace metatags
+  set_fact:
+    dynatrace_oneagent_host_metadata: "inventoryname={{ inventory_hostname }}"
+
+- name: check prerequisites
+  include_tasks: "tasks/prerequisites.yml"
+
+- name: download dynatrace oneagent
+  include_tasks: "tasks/download.yml"
+
+- name: install dynatrace oneagent
+  include_tasks: "tasks/install.yml"
+
+- name: create maintenance windows | linux
+  include_tasks: "tasks/create_maintenance_windows.yml"
+  when: ansible_system|lower == "linux" and ansible_host[4] == 'p'
+
+- name: create maintenance windows | windows
+  include_tasks: "tasks/create_maintenance_windows_win.yml"
+  when: ansible_system|lower == "win32nt" and ansible_host[4] == 'p'
+
+- name: ensure oneagent has selected state and enabled on boot | linux
+  service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_state }}"
+    enabled: true
+  when: dynatrace_oneagent_package_state != "absent" and ansible_system|lower == "linux"
+  become_user: root
+  become: true
+
+- name: ensure oneagent has selected state and enabled on boot | windows
+  win_service:
+    name: "{{ dynatrace_oneagent_service_name }}"
+    state: "{{ dynatrace_oneagent_state }}"
+    enabled: true
+  when: dynatrace_oneagent_package_state != "absent" and ansible_system|lower == "win32nt"

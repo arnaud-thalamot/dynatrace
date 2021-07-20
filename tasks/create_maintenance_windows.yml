@@ -1,0 +1,46 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to create a maintenance window on a given Dynatrace Tenant
+# Target : Linux / AIX
+
+- name: build application code
+  set_fact:
+    date_now: "{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}"
+
+- name: "Create a maintenance window"
+  uri:
+    url: "https://{{ dynatrace_environment_url }}/api/config/v1/maintenanceWindows"
+    method: "POST"
+    headers:
+      Authorization: "Api-Token {{ dynatrace_api_token }}"
+    body:
+      {
+        "name": "##_MEP_{{ inventory_hostname }}",
+        "description": "Maintenance {{ inventory_hostname }} => alerts for Oasis disabled",
+        "type": "PLANNED",
+        "suppression": "DETECT_PROBLEMS_DONT_ALERT",
+        "scope": {
+          "entities": [],
+          "matches": [
+            {
+              "tags": [
+                {
+                  "context": "CONTEXTLESS",
+                  "key": "inventoryname={{ inventory_hostname }}"
+                }
+              ]
+            }
+          ]
+        },
+        "schedule": {
+          "recurrenceType": "ONCE",
+          "start": "{{ ansible_date_time.date }} {{ ansible_date_time.hour }}:{{ ansible_date_time.minute }}",
+          "end": "{{ date_end }}",
+          "zoneId": "Europe/Vienna"
+        }
+      }
+    body_format: json
+    status_code: 201
+  register: create_maintenance_window_response
+  when: "(((date_end | to_datetime('%Y-%m-%d %H:%M')) - (date_now | to_datetime('%Y-%m-%d %H:%M'))).total_seconds()) > 0"

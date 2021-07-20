@@ -1,0 +1,99 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to install a Dynatrace Oneagent on a given host
+# Target : Linux / AIX / Windows
+
+- name: set environment code
+  set_fact:
+    environment_code: "{{ ansible_host[4] }}"
+
+- debug:
+    msg: "environment_code {{ ansible_host[4] }}"
+
+- debug:
+    msg: "application_code {{ application_code }}"
+
+- debug:
+    msg: "appli {{ appli }}"
+
+- debug:
+    msg: "code appli {{ ansible_host[5:7] }}"
+
+- name: build application code
+  set_fact:
+    application_code: "{{ ansible_host[5:7] }}"
+  when: "'infra' in group_names"
+
+- name: build host group
+  set_fact:
+    dynatrace_hostgroup: "--set-host-group={{ environment_code }}_{{ application_code }}_{{ appli }}"
+  when: environment_code != "" and application_code != "" and appli != ""
+
+- name: set install params
+  set_fact:
+    oneagent_install_params: "{{ item.key }}={{ item.value }}"
+  with_dict: "{{ dynatrace_oneagent_install_args }}"
+  register: oneagent_install_param
+
+- name: bug on install params
+  set_fact:
+    oneagent_install_params: "{{ oneagent_install_params[:-1] }}"
+  when: environment_code != "" and application_code != ""
+
+- debug:
+    msg: "dynatrace install params {{oneagent_install_params}}"
+
+- name: install dynatrace oneagent | linux
+  command: "sudo {{ dynatrace_oneagent_install_cmd }} {{ oneagent_install_params }}"
+  args:
+    creates: "{{ dynatrace_oneagent_install_artifact }}"
+  when: ansible_system|lower == "linux" and dynatrace_oneagent_package_state != "absent"
+  become: true
+  become_user: root
+
+- name: set host group | linux
+  command: "{{ dynatrace_oneagent_ctl_path }} {{dynatrace_hostgroup}} --restart-service"
+  when: ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: uninstall dynatrace oneAgent | linux
+  command: "{{ dynatrace_oneagent_uninstall_cmd }}"
+  args:
+    removes: "{{ dynatrace_oneagent_install_artifact }}"
+  when: ansible_system|lower == "linux" and dynatrace_oneagent_package_state == "absent"
+  become_user: root
+
+- name: install dynatrace oneagent | aix
+  command: "sudo {{ dynatrace_oneagent_install_cmd }} {{ oneagent_install_params }}"
+  args:
+    creates: "{{ dynatrace_oneagent_install_artifact }}"
+  when: ansible_system|lower == "aix" and dynatrace_oneagent_package_state != "absent"
+  become_user: root
+
+- name: set host group
+  command: "sudo {{ dynatrace_oneagent_ctl_path }} {{dynatrace_hostgroup}} --restart-service"
+  when: ansible_system|lower == "aix"
+
+- name: uninstall dynatrace oneAgent
+  command: "{{ dynatrace_oneagent_uninstall_cmd }}"
+  args:
+    removes: "{{ dynatrace_oneagent_install_artifact }}"
+  when: ansible_system|lower == "aix" and dynatrace_oneagent_package_state == "absent"
+  become_user: root
+
+- name: install dynatrace oneagent | windows
+  win_package:
+    path: "{{ dynatrace_oneagent_install_script }}"
+    creates_service: "{{ dynatrace_oneagent_service_name }}"
+    arguments: "{{ oneagent_install_params }} INSTALL_PATH={{ windows_default_install_dir }} --quiet"
+    state: "{{ dynatrace_oneagent_package_state }}"
+    become: yes
+  when: ansible_system|lower == "win32nt"
+
+- name: set host group | windows
+  win_command: ".\\oneagentctl.exe {{dynatrace_hostgroup}} --restart-service"
+  args:
+    chdir: "{{ dynatrace_oneagent_ctl_path }}"
+  when: ansible_system|lower == "win32nt"

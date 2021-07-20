@@ -1,0 +1,21 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to restart a Dynatrace Oneagent on a given host
+# Target : Linux / AIX / Windows
+
+- name: set host group | linux
+  command: "{{ dynatrace_oneagent_ctl_path }} --restart-service"
+  when: ansible_system|lower == "linux"
+  become: true
+  become_user: root
+
+- name: set host group | aix
+  command: "sudo {{ dynatrace_oneagent_ctl_path }} --restart-service"
+  when: ansible_system|lower == "aix"
+
+- name: set host group | windows
+  win_command: ".\\oneagentctl.exe --restart-service"
+  args:
+    chdir: "{{ dynatrace_oneagent_ctl_path }}"
+  when: ansible_system|lower == "win32nt"

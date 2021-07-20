@@ -1,0 +1,25 @@
+---
+galaxy_info:
+  author: "Autonomous Cloud Enablement Team"
+  company: Dynatrace
+  description: Ansible role for dynatrace OneAgent
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+  - name: EL
+    versions:
+    - 8
+    - 7
+  - name: Ubuntu
+    versions:
+    - xenial
+    - bionic
+  - name: Windows
+    version:
+    - 2008R2
+    - 2012R2
+    - 2016
+    - 2019
+  galaxy_tags:
+  - monitoring
+dependencies: []

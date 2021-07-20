@@ -1,0 +1,14 @@
+---
+
+# Author : DOT_STI_Supervision
+# Purpose : Play to restart a Dynatrace Oneagent
+# Target : Linux / AIX / Windows
+
+- name: load default variables based on OS
+  include_vars: "defaults/main/{{ ansible_system | lower }}.yml"
+
+- name: load variables based on OS
+  include_vars: "vars/{{ ansible_system | lower }}.yml"
+
+- name: check prerequisites
+  include_tasks: "tasks/restart.yml"
